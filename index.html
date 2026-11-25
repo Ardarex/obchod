@@ -13,12 +13,16 @@
 .formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
 .notice{padding:12px 14px;background:#f6f3e9;border:1px solid #e9dfc7;border-radius:10px;color:#6e5c37}
 @media print{.no-print{display:none!important}}
+.search-result{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border)}
+.search-result:first-of-type{margin-top:8px}
+@media(max-width:650px){.search-result{align-items:flex-start;flex-direction:column}}
 </style></head>
 <body><header><h1>Remeselný obchodík</h1><div>Spoločná evidencia skladu a predaja</div></header><main>
 <section id="login" class="card"><h2>Prihlásenie</h2><p class="muted">Prihláste sa účtom, ktorý vytvoril administrátor.</p><label>E-mail</label><input id="email" type="email" autocomplete="username"><label>Heslo</label><input id="password" type="password" autocomplete="current-password"><button id="loginBtn">Prihlásiť sa</button><p id="loginMsg" class="error"></p></section>
 <section id="app" class="hide">
 <div class="card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b id="who"></b><div class="muted" id="role"></div></div><button class="secondary" id="logout">Odhlásiť sa</button></div></div>
 <nav><button class="active" data-view="home">Prehľad</button><button data-view="artisans">Remeselníci</button><button data-view="receive">Príjem</button><button data-view="stock">Sklad</button><button data-view="movements">Pohyby skladu</button><button data-view="sell">Predaj</button><button data-view="settle">Vyúčtovanie</button></nav>
+<div class="card" id="quickSearchCard"><h2>Rýchle vyhľadávanie</h2><label for="quickSearch">Hľadať remeselníka alebo výrobok</label><input id="quickSearch" type="search" placeholder="Zadajte meno, názov alebo existujúce číslo…" autocomplete="off"><div id="quickSearchResults" class="muted" aria-live="polite">Začnite písať a zobrazia sa zodpovedajúce výsledky.</div></div>
 <section id="home" class="view active"><div class="grid"><div class="card"><div class="muted">Skladom</div><div class="stats" id="stockCount">–</div></div><div class="card"><div class="muted">Predané kusy</div><div class="stats" id="soldCount">–</div></div><div class="card"><div class="muted">Tržby</div><div class="stats" id="revenue">–</div></div></div><div class="card"><h3>Posledné predaje</h3><div id="latestSales" class="scroll"></div></div></section>
 <section id="artisans" class="view"><div class="card"><h2>Pridať remeselníka</h2><label>Meno / názov</label><input id="artisanName"><label>Kontakt</label><input id="artisanContact"><button id="saveArtisan">Uložiť</button></div><div class="card"><h3>Remeselníci</h3><div id="artisanList" class="scroll"></div></div></section>
 <section id="receive" class="view"><div class="card"><h2>Príjem výrobkov</h2><label>Remeselník</label><select id="receiveArtisan"></select><label>Názov výrobku</label><input id="productName"><label>Počet kusov</label><input id="receiveQty" type="number" min="1" value="1"><label>Cena remeselníka za kus (€)</label><input id="basePrice" type="number" min=".01" step=".01"><p class="muted" id="pricePreview">Predajná cena s 10 % prirážkou: –</p><button id="receiveBtn">Vytvoriť príjem (čaká na schválenie)</button><p id="receiveMsg"></p></div><div class="card"><h3>Čakajúce príjmy</h3><div id="pendingList" class="scroll"></div></div></section>
@@ -70,8 +74,25 @@ $('latestSales').innerHTML=tbl(['Dátum','Výrobok','Kusy','Platba','Tržba'],s.
 fillSelect('receiveArtisan',artisans.map(x=>[x.id,x.name]));fillSelect('settleArtisan',artisans.map(x=>[x.id,x.name]));fillSelect('saleProduct',products.filter(x=>x.status==='active'&&x.stock_qty>0).map(x=>[x.id,`${x.name} – ${x.artisans?.name||''} (${x.stock_qty} ks, ${money(x.retail_price)})`]));
 let pending=products.filter(x=>x.status==='pending');$('pendingList').innerHTML=tbl(['Výrobok','Remeselník','Počet','Cena','Akcie'],pending.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.received_qty}</td><td>${money(x.artisan_price)}</td><td><button class="secondary small" onclick="printReceipt('${x.id}')">Tlačiť protokol</button> ${profile.role==='admin'?`<button class="danger small" onclick="deleteProduct('${x.id}')">Vymazať testovaciu položku</button>`:''}</td></tr>`));
 fillSelect('movementProduct',products.map(x=>[x.id,`${x.name} – ${x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||'Remeselník')} (sklad ${x.stock_qty} ks)`]));
+renderQuickSearch();
 $('movementList').innerHTML=tbl(['Číslo dokladu','Dátum','Výrobok','Pohyb','Kusy','Poznámka','Doklad'],movements.map(x=>`<tr><td><code>${safe(x.doc_no)}</code></td><td>${new Date(x.created_at).toLocaleString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${safe(movementLabel(x.movement_type))}</td><td>${x.quantity}</td><td>${safe(x.note||'')}</td><td><button class="secondary small" onclick="printMovement('${x.id}')">Tlačiť</button></td></tr>`));
 }
+
+function renderQuickSearch(){
+ const input=$('quickSearch'),out=$('quickSearchResults');if(!input||!out)return;
+ const q=input.value.trim().toLocaleLowerCase('sk-SK');
+ if(!q){out.className='muted';out.textContent='Začnite písať a zobrazia sa zodpovedajúce výsledky.';return}
+ const has=(...values)=>values.some(v=>String(v??'').toLocaleLowerCase('sk-SK').includes(q));
+ const aHits=artisans.filter(a=>has(a.name,a.contact,a.code,a.artisan_no,a.id));
+ const pHits=products.filter(p=>has(p.name,p.sku,p.code,p.product_no,p.id,p.artisans?.name,p.supplier_name));
+ const rows=[];
+ aHits.slice(0,20).forEach(a=>rows.push(`<div class="search-result"><div><b>Remeselník: ${safe(a.name)}</b><div class="muted">${safe(a.contact||'Bez kontaktu')} · ${a.code||a.artisan_no?'Číslo: '+safe(a.code||a.artisan_no):'Existujúce číslo doplníme zo zoznamu'}</div></div><button class="secondary small" onclick="searchOpenView('artisans')">Otvoriť remeselníkov</button></div>`));
+ pHits.slice(0,30).forEach(p=>rows.push(`<div class="search-result"><div><b>Výrobok: ${safe(p.name)}</b><div class="muted">${safe(p.artisans?.name|| (p.owner_type==='shop'?'Obchodík':p.supplier_name||'Dodávateľ'))} · Skladom: ${Number(p.stock_qty||0)} ks · ${money(p.retail_price)}${p.sku||p.code||p.product_no?' · Číslo: '+safe(p.sku||p.code||p.product_no):' · Číslo doplníme zo zoznamu'}</div></div><button class="secondary small" onclick="searchOpenView('stock')">Otvoriť sklad</button></div>`));
+ const total=aHits.length+pHits.length;
+ out.className='';out.innerHTML=total?`<p class="muted">Nájdené: ${total} · Zobrazených najviac 50 výsledkov.</p>${rows.join('')}`:'<p class="muted">Nič sa nenašlo. Skúste iný názov alebo číslo.</p>';
+}
+window.searchOpenView=view=>{const b=document.querySelector(`nav button[data-view="${view}"]`);if(b&&!b.classList.contains('hide'))b.click()};
+$('quickSearch').addEventListener('input',renderQuickSearch);
 
 function printPage(title, body, targetWindow=null){
  const w=targetWindow||window.open('','_blank');
