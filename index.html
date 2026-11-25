@@ -1,23 +1,60 @@
 <!doctype html>
 <html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Remeselný obchodík – online</title>
-<link rel="stylesheet" href="style.css"></head>
+<style>
+/* Remeselný obchodík – vzhľad aplikácie */
+:root{--bg:#f7f5ef;--surface:#fff;--primary:#536b57;--primary-dark:#3e5543;--secondary:#e5ece2;--accent:#c47c5a;--text:#303a32;--muted:#858d83;--border:#e7e8df;--danger:#b85c52;--shadow:0 4px 18px rgba(45,60,45,.07)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 Inter,"Segoe UI",Arial,sans-serif}header{background:var(--primary-dark);color:#fff;padding:22px max(18px,calc((100% - 1180px)/2));box-shadow:0 3px 14px rgba(0,0,0,.09)}header h1{margin:0 0 3px;color:#fff;font-size:26px;letter-spacing:-.5px}header div{color:#e4ebe2}main{max-width:1180px;margin:25px auto;padding:0 18px}.card{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:20px;margin:14px 0;box-shadow:var(--shadow)}h2,h3{color:var(--primary-dark);letter-spacing:-.25px}h2{font-size:21px;margin:0 0 15px}h3{font-size:17px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.grid .card{margin:0}.stats{font-size:30px;font-weight:750;color:var(--primary-dark);letter-spacing:-.8px}.muted{color:var(--muted)}nav{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}button{font:inherit;padding:10px 16px;border:0;border-radius:9px;background:var(--primary);color:#fff;font-weight:650;cursor:pointer;transition:background .18s,transform .18s,box-shadow .18s}button:hover{background:var(--primary-dark);transform:translateY(-1px);box-shadow:0 4px 10px rgba(45,70,50,.13)}button:active{transform:translateY(0)}button.secondary,nav button{background:var(--secondary);color:var(--primary-dark)}nav button.active,nav button:hover{background:var(--primary);color:#fff}.danger,button.danger{background:#f5e4e0;color:#9d453d}.danger:hover,button.danger:hover{background:#efd1cb;color:#85372f}button.small{padding:7px 11px;font-size:13px}label{display:block;margin:10px 0 5px;color:var(--primary-dark);font-size:13px;font-weight:700}input,select,textarea{display:block;width:100%;margin:5px 0 12px;padding:11px 13px;border:1px solid #d9dfd5;border-radius:9px;background:#fff;color:var(--text);font:inherit;outline:none;transition:border .18s,box-shadow .18s}input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(83,107,87,.13)}table{width:100%;border-collapse:separate;border-spacing:0;background:#fff}td,th{text-align:left;padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}th{background:#edf1e9;color:var(--primary-dark);font-size:12px;font-weight:750;white-space:nowrap}tbody tr:hover{background:#fafbf8}tbody tr:last-child td{border-bottom:0}.scroll{overflow:auto;border:1px solid var(--border);border-radius:10px}.view{display:none}.view.active{display:block}.hide{display:none!important}.error{color:#a33}.good{color:#397448}.card p:last-child{margin-bottom:0}#settleResult .card{margin-top:18px}
+@media(max-width:650px){header{padding:17px}header h1{font-size:22px}main{margin:12px auto;padding:0 11px}.card{padding:14px;border-radius:12px}nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}nav button{width:100%}table{min-width:600px}button{padding:10px 13px}.grid{grid-template-columns:1fr}}
+@media print{body{background:#fff;color:#000}.no-print,button,nav{display:none!important}.card{box-shadow:none;border:1px solid #ccc}}
+
+
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;background:#edf1e9;color:#3e5543;font-size:12px;font-weight:700}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.notice{padding:12px 14px;background:#f6f3e9;border:1px solid #e9dfc7;border-radius:10px;color:#6e5c37}
+@media print{.no-print{display:none!important}}
+</style></head>
 <body><header><h1>Remeselný obchodík</h1><div>Spoločná evidencia skladu a predaja</div></header><main>
 <section id="login" class="card"><h2>Prihlásenie</h2><p class="muted">Prihláste sa účtom, ktorý vytvoril administrátor.</p><label>E-mail</label><input id="email" type="email" autocomplete="username"><label>Heslo</label><input id="password" type="password" autocomplete="current-password"><button id="loginBtn">Prihlásiť sa</button><p id="loginMsg" class="error"></p></section>
 <section id="app" class="hide">
 <div class="card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b id="who"></b><div class="muted" id="role"></div></div><button class="secondary" id="logout">Odhlásiť sa</button></div></div>
-<nav><button class="active" data-view="home">Prehľad</button><button data-view="artisans">Remeselníci</button><button data-view="receive">Príjem</button><button data-view="stock">Sklad</button><button data-view="sell">Predaj</button><button data-view="settle">Vyúčtovanie</button></nav>
+<nav><button class="active" data-view="home">Prehľad</button><button data-view="artisans">Remeselníci</button><button data-view="receive">Príjem</button><button data-view="stock">Sklad</button><button data-view="movements">Pohyby skladu</button><button data-view="sell">Predaj</button><button data-view="settle">Vyúčtovanie</button></nav>
 <section id="home" class="view active"><div class="grid"><div class="card"><div class="muted">Skladom</div><div class="stats" id="stockCount">–</div></div><div class="card"><div class="muted">Predané kusy</div><div class="stats" id="soldCount">–</div></div><div class="card"><div class="muted">Tržby</div><div class="stats" id="revenue">–</div></div></div><div class="card"><h3>Posledné predaje</h3><div id="latestSales" class="scroll"></div></div></section>
 <section id="artisans" class="view"><div class="card"><h2>Pridať remeselníka</h2><label>Meno / názov</label><input id="artisanName"><label>Kontakt</label><input id="artisanContact"><button id="saveArtisan">Uložiť</button></div><div class="card"><h3>Remeselníci</h3><div id="artisanList" class="scroll"></div></div></section>
 <section id="receive" class="view"><div class="card"><h2>Príjem výrobkov</h2><label>Remeselník</label><select id="receiveArtisan"></select><label>Názov výrobku</label><input id="productName"><label>Počet kusov</label><input id="receiveQty" type="number" min="1" value="1"><label>Cena remeselníka za kus (€)</label><input id="basePrice" type="number" min=".01" step=".01"><p class="muted" id="pricePreview">Predajná cena s 10 % prirážkou: –</p><button id="receiveBtn">Vytvoriť príjem (čaká na schválenie)</button><p id="receiveMsg"></p></div><div class="card"><h3>Čakajúce príjmy</h3><div id="pendingList" class="scroll"></div></div></section>
-<section id="stock" class="view"><div class="card"><h2>Skladové karty</h2><p><button class="secondary" id="printAllStock">Tlačiť celý sklad</button></p><div id="stockList" class="scroll"></div></div></section>
+<section id="stock" class="view"><div class="card"><h2>Skladové karty</h2><p><button class="secondary" id="printAllStock">Tlačiť celý sklad</button></p><p class="muted">Ceny môže meniť administrátor alebo účtovník. Vymazanie výrobku je povolené iba administrátorovi a len vtedy, ak výrobok nemá zaevidovaný predaj. Predajná cena sa automaticky počíta ako cena remeselníka + 10 %.</p><div id="stockList" class="scroll"></div></div></section>
+<section id="movements" class="view">
+ <div class="card"><h2>Pridať vlastný alebo dodávateľský tovar</h2>
+ <p class="muted">Tento príjem nie je komisný tovar remeselníka. Vlastníkom bude obchodík alebo uvedený dodávateľ.</p>
+ <div class="formgrid">
+  <div><label>Typ vlastníctva</label><select id="ownType"><option value="shop">Vlastný tovar obchodíka</option><option value="supplier">Tovar od iného dodávateľa</option></select></div>
+  <div><label>Názov dodávateľa (ak je relevantné)</label><input id="supplierName" placeholder="Názov dodávateľa"></div>
+  <div><label>Názov výrobku</label><input id="ownProductName"></div>
+  <div><label>Počet kusov</label><input id="ownQty" type="number" min="1" value="1"></div>
+  <div><label>Nákupná cena / ks (€)</label><input id="ownCost" type="number" min="0.01" step="0.01"></div>
+ </div>
+ <p class="muted" id="ownPricePreview">Predajná cena s 10 % prirážkou: –</p>
+ <button id="addOwnProduct">Pridať tovar do skladu</button><p id="ownProductMsg"></p>
+ </div>
+ <div class="card"><h2>Vrátenie, vyradenie a opätovné zaradenie</h2>
+ <div class="notice">Vrátenie remeselníkovi/dodávateľovi a vyradenie zníži sklad. Opätovné zaradenie ho zvýši. História dokladov zostane zachovaná.</div>
+ <div class="formgrid">
+  <div><label>Výrobok</label><select id="movementProduct"></select></div>
+  <div><label>Typ pohybu</label><select id="movementType"><option value="return_to_owner">Vrátenie vlastníkovi / dodávateľovi</option><option value="writeoff">Vyradenie – poškodenie / odpis</option><option value="reinstatement">Opätovné zaradenie do skladu</option><option value="correction_in">Inventúrna oprava – príjem</option><option value="correction_out">Inventúrna oprava – výdaj</option></select></div>
+  <div><label>Počet kusov</label><input id="movementQty" type="number" min="1" value="1"></div>
+  <div><label>Poznámka / dôvod</label><input id="movementNote" placeholder="Napr. remeselník si prevzal 3 kusy"></div>
+ </div>
+ <button id="saveMovement">Uložiť pohyb a vytvoriť doklad</button><p id="movementMsg"></p>
+ </div>
+ <div class="card"><h2>História pohybov skladu</h2><p><button class="secondary" id="printMovements">Tlačiť históriu pohybov</button></p><div id="movementList" class="scroll"></div></div>
+</section>
 <section id="sell" class="view"><div class="card"><h2>Zaevidovať predaj</h2><p><button class="secondary" id="printDailyClose">Tlačiť dennú uzávierku</button></p><label>Výrobok</label><select id="saleProduct"></select><label>Počet kusov</label><input id="saleQty" type="number" min="1" value="1"><label>Platba</label><select id="payment"><option value="cash">Hotovosť</option><option value="card">Platobná karta</option></select><p id="salePreview" class="muted"></p><button id="sellBtn">Zaevidovať predaj</button><p id="saleMsg"></p></div></section>
 <section id="settle" class="view"><div class="card"><h2>Štvrťročné vyúčtovanie</h2><label>Remeselník</label><select id="settleArtisan"></select><label>Rok</label><input id="settleYear" type="number"><label>Štvrťrok</label><select id="settleQuarter"><option value="1">1. štvrťrok</option><option value="2">2. štvrťrok</option><option value="3">3. štvrťrok</option><option value="4">4. štvrťrok</option></select><button id="calcSettle">Vypočítať</button><div id="settleResult"></div></div></section>
 </section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script>
 const cfg=window.APP_CONFIG||{}, ready=cfg.SUPABASE_URL?.startsWith('https://')&&cfg.SUPABASE_ANON_KEY&&!cfg.SUPABASE_ANON_KEY.startsWith('DOPLNTE');
 const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('sk-SK',{style:'currency',currency:'EUR'});
-let sb,user,profile,artisans=[],products=[];
+let sb,user,profile,artisans=[],products=[],movements=[];
 function msg(id,t,ok=false){$(id).textContent=t;$(id).className=ok?'good':'error'}
 if(!ready){$('loginMsg').textContent='Najprv doplňte SUPABASE_URL a SUPABASE_ANON_KEY v súbore config.js.'}
 else sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
@@ -25,13 +62,15 @@ $('loginBtn').onclick=async()=>{if(!sb)return;let {data,error}=await sb.auth.sig
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===b.dataset.view));refresh()});
 async function boot(){let {data:{user:u}}=await sb.auth.getUser();if(!u)return;user=u;let {data:p,error}=await sb.from('profiles').select('*').eq('id',u.id).single();if(error)return msg('loginMsg','Profil používateľa sa nenašiel: '+error.message);profile=p;$('login').classList.add('hide');$('app').classList.remove('hide');$('who').textContent=p.display_name||u.email;$('role').textContent='Rola: '+p.role;document.querySelector('[data-view="artisans"]').classList.toggle('hide',!['admin','accountant'].includes(p.role));document.querySelector('[data-view="settle"]').classList.toggle('hide',!['admin','accountant'].includes(p.role));$('settleYear').value=new Date().getFullYear();await refresh()}
-async function refresh(){if(!sb||!user)return;let [a,p,s]=await Promise.all([sb.from('artisans').select('*').eq('active',true).order('name'),sb.from('products').select('*,artisans(name)').order('created_at',{ascending:false}),sb.from('sales').select('*,products(name),artisans(name)').is('voided_at',null).order('sold_on',{ascending:false}).limit(30)]);if(a.error||p.error||s.error){console.error(a.error,p.error,s.error);return}artisans=a.data;products=p.data;let stock=products.filter(x=>x.status==='active').reduce((n,x)=>n+x.stock_qty,0),sold=s.data.reduce((n,x)=>n+x.quantity,0),rev=s.data.reduce((n,x)=>n+Number(x.total_amount),0);$('stockCount').textContent=stock+' ks';$('soldCount').textContent=sold+' ks';$('revenue').textContent=money(rev);
+async function refresh(){if(!sb||!user)return;let [a,p,s,m]=await Promise.all([sb.from('artisans').select('*').eq('active',true).order('name'),sb.from('products').select('*,artisans(name)').order('created_at',{ascending:false}),sb.from('sales').select('*,products(name),artisans(name)').is('voided_at',null).order('sold_on',{ascending:false}).limit(30),sb.from('stock_movements').select('*,products(name,artisan_id,artisans(name))').order('created_at',{ascending:false}).limit(200)]);if(a.error||p.error||s.error||m.error){console.error(a.error,p.error,s.error,m.error);if(m.error)console.warn('Chýba databázová migrácia stock_movements:',m.error.message);return}artisans=a.data;products=p.data;movements=m.data;let stock=products.filter(x=>x.status==='active').reduce((n,x)=>n+x.stock_qty,0),sold=s.data.reduce((n,x)=>n+x.quantity,0),rev=s.data.reduce((n,x)=>n+Number(x.total_amount),0);$('stockCount').textContent=stock+' ks';$('soldCount').textContent=sold+' ks';$('revenue').textContent=money(rev);
 const tbl=(heads,rows)=>rows.length?`<table><thead><tr>${heads.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`:'<p class="muted">Zatiaľ bez záznamov.</p>';
-$('artisanList').innerHTML=tbl(['Meno','Kontakt','Akcia'],artisans.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.contact||'')}</td><td><button class="danger small" onclick="removeArtisan('${x.id}')">Vymazať</button></td></tr>`));
-$('stockList').innerHTML=tbl(['Výrobok','Remeselník','Skladom','Cena remeselníka','Predajná cena','Stav','Doklad'],products.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.artisans?.name||'')}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td><td>${x.status==='pending'?'Čaká na schválenie':x.status==='active'?'Aktívny':'Zamietnutý'} ${x.status==='pending'&&['admin','accountant'].includes(profile.role)?`<button onclick="approve('${x.id}')">Schváliť</button>`:''}</td><td><button class="secondary" onclick="printStockCard('${x.id}')">Tlačiť kartu</button></td></tr>`));
+$('artisanList').innerHTML=tbl(['ID remeselníka','Meno','Kontakt','Akcia'],artisans.map(x=>`<tr><td><code>${safe('REM-'+String(x.id).toUpperCase())}</code></td><td>${safe(x.name)}</td><td>${safe(x.contact||'')}</td><td><button class="danger small" onclick="removeArtisan('${x.id}')">Deaktivovať</button></td></tr>`));
+$('stockList').innerHTML=tbl(['ID výrobku','Výrobok','Remeselník','Skladom','Cena remeselníka','Predajná cena','Stav','Akcie'],products.map(x=>`<tr><td><code>${safe('VYR-'+String(x.id).toUpperCase())}</code></td><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td><td>${x.status==='pending'?'Čaká na schválenie':x.status==='active'?'Aktívny':'Zamietnutý'} ${x.status==='pending'&&['admin','accountant'].includes(profile.role)?`<button class="small" onclick="approve('${x.id}')">Schváliť</button>`:''}</td><td><button class="secondary small" onclick="editProductPrice('${x.id}')">Zmeniť cenu</button> <button class="secondary small" onclick="printStockCard('${x.id}')">Tlačiť kartu</button> ${profile.role==='admin'?`<button class="danger small" onclick="deleteProduct('${x.id}')">Vymazať</button>`:''}</td></tr>`));
 $('latestSales').innerHTML=tbl(['Dátum','Výrobok','Kusy','Platba','Tržba'],s.data.slice(0,10).map(x=>`<tr><td>${new Date(x.sold_on).toLocaleString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${x.quantity}</td><td>${x.payment_method==='cash'?'Hotovosť':'Karta'}</td><td>${money(x.total_amount)}</td></tr>`));
 fillSelect('receiveArtisan',artisans.map(x=>[x.id,x.name]));fillSelect('settleArtisan',artisans.map(x=>[x.id,x.name]));fillSelect('saleProduct',products.filter(x=>x.status==='active'&&x.stock_qty>0).map(x=>[x.id,`${x.name} – ${x.artisans?.name||''} (${x.stock_qty} ks, ${money(x.retail_price)})`]));
-let pending=products.filter(x=>x.status==='pending');$('pendingList').innerHTML=tbl(['Výrobok','Remeselník','Počet','Cena','Doklad'],pending.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.artisans?.name||'')}</td><td>${x.received_qty}</td><td>${money(x.artisan_price)}</td><td><button class="secondary" onclick="printReceipt('${x.id}')">Tlačiť protokol</button></td></tr>`));
+let pending=products.filter(x=>x.status==='pending');$('pendingList').innerHTML=tbl(['Výrobok','Remeselník','Počet','Cena','Doklad'],pending.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.received_qty}</td><td>${money(x.artisan_price)}</td><td><button class="secondary" onclick="printReceipt('${x.id}')">Tlačiť protokol</button></td></tr>`));
+fillSelect('movementProduct',products.map(x=>[x.id,`${x.name} – ${x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||'Remeselník')} (sklad ${x.stock_qty} ks)`]));
+$('movementList').innerHTML=tbl(['Číslo dokladu','Dátum','Výrobok','Pohyb','Kusy','Poznámka','Doklad'],movements.map(x=>`<tr><td><code>${safe(x.doc_no)}</code></td><td>${new Date(x.created_at).toLocaleString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${safe(movementLabel(x.movement_type))}</td><td>${x.quantity}</td><td>${safe(x.note||'')}</td><td><button class="secondary small" onclick="printMovement('${x.id}')">Tlačiť</button></td></tr>`));
 }
 
 function printPage(title, body, targetWindow=null){
@@ -42,7 +81,12 @@ function printPage(title, body, targetWindow=null){
  @page{size:auto;margin:15mm}body{font:14px Arial,sans-serif;color:#202633;margin:24px}h1{font-size:22px;margin-bottom:6px}.muted{color:#667085}
  table{width:100%;border-collapse:collapse;margin:18px 0}th,td{border:1px solid #cfd6df;padding:8px;text-align:left}th{background:#f1f3f5}
  .sign{display:flex;gap:50px;margin-top:55px}.sign div{width:45%;border-top:1px solid #555;padding-top:8px}
- </style></head><body><h1>${safe(title)}</h1>${body}<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));<\/script></body></html>`);
+ 
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;background:#edf1e9;color:#3e5543;font-size:12px;font-weight:700}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.notice{padding:12px 14px;background:#f6f3e9;border:1px solid #e9dfc7;border-radius:10px;color:#6e5c37}
+@media print{.no-print{display:none!important}}
+</style></head><body><h1>${safe(title)}</h1>${body}<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));<\/script></body></html>`);
  w.document.close();return true;
 }
 function printReceipt(id){
@@ -67,8 +111,8 @@ async function printAllStock(){
  w.document.write('<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>Pripravujem tlač…</title></head><body>Pripravujem tlač…</body></html>');
  const {data,error}=await sb.from('products').select('*,artisans(name)').order('name');
  if(error){w.close();return alert(error.message)}
- printPage('Prehľad skladových kariet',`<p>Dátum tlače: ${new Date().toLocaleString('sk-SK')}</p><table><tr><th>Výrobok</th><th>Remeselník</th><th>Prijaté</th><th>Predané</th><th>Skladom</th><th>Cena remeselníka</th><th>Predajná cena</th><th>Stav</th></tr>
- ${data.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.artisans?.name||'')}</td><td>${x.received_qty}</td><td>${x.sold_qty}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td><td>${safe(x.status)}</td></tr>`).join('')}</table>`,w);
+ printPage('Prehľad skladových kariet',`<p>Dátum tlače: ${new Date().toLocaleString('sk-SK')}</p><table><tr><th>Výrobok</th><th>Vlastník / dodávateľ</th><th>Prijaté</th><th>Predané</th><th>Skladom</th><th>Cena remeselníka</th><th>Predajná cena</th><th>Stav</th></tr>
+ ${data.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.received_qty}</td><td>${x.sold_qty}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td><td>${safe(x.status)}</td></tr>`).join('')}</table>`,w);
 }
 async function printDailyClose(){
  const w=window.open('','_blank');if(!w)return alert('Povoľte vyskakovacie okná pre túto stránku a skúste tlač znova.');
@@ -82,8 +126,45 @@ async function printDailyClose(){
  ${data.map(x=>`<tr><td>${new Date(x.sold_on).toLocaleTimeString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${safe(x.artisans?.name||'')}</td><td>${x.quantity}</td><td>${x.payment_method==='cash'?'Hotovosť':'Karta'}</td><td>${money(x.total_amount)}</td></tr>`).join('')}</table>
  <h3>Hotovosť: ${money(sum(cash))}</h3><h3>Platobné karty: ${money(sum(card))}</h3><h2>Tržby spolu: ${money(sum(data))}</h2>`,w);
 }
+function movementLabel(t){return ({return_to_owner:'Vrátenie vlastníkovi/dodávateľovi',writeoff:'Vyradenie / odpis',reinstatement:'Opätovné zaradenie',correction_in:'Inventúrna oprava – príjem',correction_out:'Inventúrna oprava – výdaj',initial_stock:'Počiatočný príjem'})[t]||t}
+function printMovement(id){const x=movements.find(m=>m.id===id);if(!x)return;const p=x.products||{};const owner=p.artisan_id?(p.artisans?.name||'Remeselník'):(p.owner_type==='shop'?'Obchodík':p.supplier_name||'Dodávateľ');const title=['return_to_owner','writeoff','correction_out'].includes(x.movement_type)?'Výdajka':'Príjemka';printPage(title,`<p><b>Číslo dokladu:</b> ${safe(x.doc_no)}</p><p><b>Dátum:</b> ${new Date(x.created_at).toLocaleString('sk-SK')}</p><p><b>Výrobok:</b> ${safe(p.name||'')}</p><p><b>Vlastník / dodávateľ:</b> ${safe(owner)}</p><p><b>Druh pohybu:</b> ${safe(movementLabel(x.movement_type))}</p><p><b>Počet kusov:</b> ${x.quantity}</p><p><b>Dôvod / poznámka:</b> ${safe(x.note||'—')}</p><div class="sign"><div>Odovzdal/a</div><div>Prevzal/a</div></div>`)}
+async function printAllMovements(){const w=window.open('','_blank');if(!w)return alert('Povoľte vyskakovacie okná.');w.document.write('<!doctype html><html><body>Pripravujem tlač…</body></html>');const {data,error}=await sb.from('stock_movements').select('*,products(name)').order('created_at',{ascending:false});if(error){w.close();return alert(error.message)}printPage('História pohybov skladu',`<table><tr><th>Doklad</th><th>Dátum</th><th>Výrobok</th><th>Pohyb</th><th>Kusy</th><th>Poznámka</th></tr>${data.map(x=>`<tr><td>${safe(x.doc_no)}</td><td>${new Date(x.created_at).toLocaleString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${safe(movementLabel(x.movement_type))}</td><td>${x.quantity}</td><td>${safe(x.note||'')}</td></tr>`).join('')}</table>`,w)}
+$('ownType').onchange=()=>{$('supplierName').disabled=$('ownType').value!=='supplier'};$('ownType').onchange();
+$('ownCost').oninput=()=>{$('ownPricePreview').textContent='Predajná cena s 10 % prirážkou: '+money(Math.round(Number($('ownCost').value)*1.1*100)/100)};
+$('addOwnProduct').onclick=async()=>{if(!['admin','accountant'].includes(profile?.role))return alert('Vlastný tovar môže pridávať administrátor alebo účtovník.');const name=$('ownProductName').value.trim(),type=$('ownType').value,supplier=$('supplierName').value.trim(),qty=Number($('ownQty').value),cost=Number($('ownCost').value);if(!name||!Number.isInteger(qty)||qty<1||!Number.isFinite(cost)||cost<=0||(type==='supplier'&&!supplier))return msg('ownProductMsg','Vyplňte názov, počet, cenu a prípadne dodávateľa.');const {data,error}=await sb.from('products').insert({artisan_id:null,owner_type:type,supplier_name:type==='supplier'?supplier:null,name,artisan_price:cost,received_qty:qty,status:'active',created_by:user.id}).select().single();if(error)return msg('ownProductMsg','Tovar sa nepodarilo pridať. Skontrolujte, či ste spustili databázovú migráciu: '+error.message);const {error:me}=await sb.rpc('record_stock_movement',{p_product_id:data.id,p_type:'initial_stock',p_quantity:qty,p_note:'Počiatočný príjem vlastného/dodávateľského tovaru',p_doc_no:'PRI-'+Date.now()});if(me){alert('Tovar bol pridaný, ale nepodarilo sa zapísať počiatočný pohyb: '+me.message)}msg('ownProductMsg','Tovar bol pridaný do aktívneho skladu.',true);$('ownProductName').value='';$('ownQty').value=1;$('ownCost').value='';await refresh()};
+$('saveMovement').onclick=async()=>{if(!profile||!['admin','accountant','staff'].includes(profile.role))return alert('Nemáte oprávnenie.');const id=$('movementProduct').value,type=$('movementType').value,qty=Number($('movementQty').value),note=$('movementNote').value.trim();if(!id||!Number.isInteger(qty)||qty<1)return msg('movementMsg','Vyberte výrobok a zadajte kladný počet kusov.');const p=products.find(x=>x.id===id);if(!p)return msg('movementMsg','Výrobok sa nenašiel.');if(['return_to_owner','writeoff','correction_out'].includes(type)&&qty>Number(p.stock_qty))return msg('movementMsg',`Na sklade je iba ${p.stock_qty} ks.`);if(!confirm(`${movementLabel(type)}: ${qty} ks výrobku „${p.name}“? Vytvorí sa doklad a zmení sa skladový stav.`))return;const {error}=await sb.rpc('record_stock_movement',{p_product_id:id,p_type:type,p_quantity:qty,p_note:note||null,p_doc_no:(['return_to_owner','writeoff','correction_out'].includes(type)?'VYD-':'PRI-')+Date.now()});if(error)return msg('movementMsg','Pohyb sa nepodarilo uložiť: '+error.message);msg('movementMsg','Pohyb bol uložený. Doklad je pripravený na tlač.',true);$('movementQty').value=1;$('movementNote').value='';await refresh()};
+$('printMovements').onclick=printAllMovements;
 function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fillSelect(id,arr){$(id).innerHTML='<option value="">Vyberte…</option>'+arr.map(x=>`<option value="${x[0]}">${safe(x[1])}</option>`).join('')}
+
+window.editProductPrice=async id=>{
+ if(!['admin','accountant'].includes(profile?.role))return alert('Na zmenu ceny nemáte oprávnenie.');
+ const x=products.find(p=>p.id===id);if(!x)return;
+ const entered=prompt(`Nová cena remeselníka za kus (€) pre „${x.name}“. Predajná cena sa automaticky prepočíta na +10 %.`,Number(x.artisan_price).toFixed(2));
+ if(entered===null)return;
+ const price=Number(String(entered).replace(',','.'));
+ if(!Number.isFinite(price)||price<=0)return alert('Zadajte platnú cenu vyššiu ako 0.');
+ const retail=Math.round(price*1.10*100)/100;
+ if(!confirm(`Uložiť novú cenu remeselníka ${money(price)} a predajnú cenu ${money(retail)}? Už uskutočnené predaje si zachovajú pôvodné ceny.`))return;
+ const {error}=await sb.from('products').update({artisan_price:price}).eq('id',id);
+ if(error)return alert('Cenu sa nepodarilo zmeniť: '+error.message);
+ await refresh();alert('Cena bola aktualizovaná. Nová predajná cena: '+money(retail));
+};
+window.deleteProduct=async id=>{
+ if(profile?.role!=='admin')return alert('Vymazávať výrobky môže iba administrátor.');
+ const x=products.find(p=>p.id===id);if(!x)return;
+ const {data:sales,error:se}=await sb.from('sales').select('id').eq('product_id',id).limit(1);
+ if(se)return alert('Nepodarilo sa overiť históriu predajov: '+se.message);
+ if(sales?.length)return alert('Tento výrobok už má zaevidovaný predaj. Nemožno ho úplne vymazať, aby zostala zachovaná účtovná história. Kontaktujte administrátora pre storno alebo vyradenie.');
+ const yes=confirm(`Naozaj úplne vymazať testovací/nepredaný výrobok „${x.name}“? Zmažú sa aj jeho príjemkové záznamy. Túto akciu nemožno vrátiť.`);
+ if(!yes)return;
+ const {error:re}=await sb.from('receipts').delete().eq('product_id',id);
+ if(re)return alert('Príjemkové záznamy sa nepodarilo odstrániť: '+re.message);
+ const {error}=await sb.from('products').delete().eq('id',id);
+ if(error)return alert('Výrobok sa nepodarilo vymazať: '+error.message);
+ await refresh();alert('Výrobok a jeho príjemkové záznamy boli vymazané.');
+};
+
 window.removeArtisan=async id=>{
  if(!['admin','accountant'].includes(profile?.role))return alert('Na túto akciu nemáte oprávnenie.');
  const artisan=artisans.find(x=>x.id===id);if(!artisan)return;
@@ -99,7 +180,7 @@ $('saveArtisan').onclick=async()=>{if(!['admin','accountant'].includes(profile.r
 $('basePrice').oninput=()=>{$('pricePreview').textContent='Predajná cena s 10 % prirážkou: '+money(Math.round(Number($('basePrice').value)*1.1*100)/100)};
 $('receiveBtn').onclick=async()=>{let artisan_id=$('receiveArtisan').value,name=$('productName').value.trim(),qty=Number($('receiveQty').value),price=Number($('basePrice').value);if(!artisan_id||!name||!Number.isInteger(qty)||qty<1||price<=0)return msg('receiveMsg','Vyplňte všetky údaje správne.');let {data,error}=await sb.from('products').insert({artisan_id,name,received_qty:qty,artisan_price:price,status:'pending',created_by:user.id}).select().single();if(error)return msg('receiveMsg',error.message);let {error:e2}=await sb.from('receipts').insert({receipt_no:'PP-'+Date.now(),artisan_id,product_id:data.id,received_qty:qty,artisan_price:price,created_by:user.id});if(e2)return msg('receiveMsg','Produkt bol vytvorený, ale protokol sa nepodarilo uložiť: '+e2.message);msg('receiveMsg','Príjem uložený. Čaká na kontrolu účtovníčkou.',true);$('productName').value='';refresh()};
 window.approve=async id=>{if(!['admin','accountant'].includes(profile.role))return;let {error}=await sb.from('products').update({status:'active'}).eq('id',id);if(error)alert(error.message);else{await sb.from('receipts').update({approved_by:user.id,approved_at:new Date().toISOString()}).eq('product_id',id);refresh()}};
-function previewSale(){let p=products.find(x=>x.id===$('saleProduct').value),q=Number($('saleQty').value)||0;$('salePreview').textContent=p?`Spolu ${money(p.retail_price*q)} · remeselník ${money(p.artisan_price*q)} · obchodík ${money((p.retail_price-p.artisan_price)*q)} · sklad ${p.stock_qty} ks`:''}
+function previewSale(){let p=products.find(x=>x.id===$('saleProduct').value),q=Number($('saleQty').value)||0;$('salePreview').textContent=p?`Spolu ${money(p.retail_price*q)} · ${p.artisan_id?'remeselník '+money(p.artisan_price*q):'vlastný tovar obchodíka'} · sklad ${p.stock_qty} ks`:''}
 $('saleProduct').onchange=previewSale;$('saleQty').oninput=previewSale;
 $('sellBtn').onclick=async()=>{let id=$('saleProduct').value,q=Number($('saleQty').value);if(!id||!Number.isInteger(q)||q<1)return msg('saleMsg','Vyberte výrobok a počet kusov.');let {error}=await sb.rpc('record_sale',{p_product_id:id,p_quantity:q,p_payment:$('payment').value,p_sale_no:'P-'+Date.now()});if(error)return msg('saleMsg',error.message);msg('saleMsg','Predaj uložený a sklad odpísaný.',true);await refresh();previewSale()};
 $('printAllStock').onclick=printAllStock;$('printDailyClose').onclick=printDailyClose;
