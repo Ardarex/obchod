@@ -22,7 +22,7 @@
 <section id="home" class="view active"><div class="grid"><div class="card"><div class="muted">Skladom</div><div class="stats" id="stockCount">–</div></div><div class="card"><div class="muted">Predané kusy</div><div class="stats" id="soldCount">–</div></div><div class="card"><div class="muted">Tržby</div><div class="stats" id="revenue">–</div></div></div><div class="card"><h3>Posledné predaje</h3><div id="latestSales" class="scroll"></div></div></section>
 <section id="artisans" class="view"><div class="card"><h2>Pridať remeselníka</h2><label>Meno / názov</label><input id="artisanName"><label>Kontakt</label><input id="artisanContact"><button id="saveArtisan">Uložiť</button></div><div class="card"><h3>Remeselníci</h3><div id="artisanList" class="scroll"></div></div></section>
 <section id="receive" class="view"><div class="card"><h2>Príjem výrobkov</h2><label>Remeselník</label><select id="receiveArtisan"></select><label>Názov výrobku</label><input id="productName"><label>Počet kusov</label><input id="receiveQty" type="number" min="1" value="1"><label>Cena remeselníka za kus (€)</label><input id="basePrice" type="number" min=".01" step=".01"><p class="muted" id="pricePreview">Predajná cena s 10 % prirážkou: –</p><button id="receiveBtn">Vytvoriť príjem (čaká na schválenie)</button><p id="receiveMsg"></p></div><div class="card"><h3>Čakajúce príjmy</h3><div id="pendingList" class="scroll"></div></div></section>
-<section id="stock" class="view"><div class="card"><h2>Skladové karty</h2><p><button class="secondary" id="printAllStock">Tlačiť celý sklad</button></p><p class="muted">Ceny môže meniť administrátor alebo účtovník. Vymazanie výrobku je povolené iba administrátorovi a len vtedy, ak výrobok nemá zaevidovaný predaj. Predajná cena sa automaticky počíta ako cena remeselníka + 10 %.</p><div id="stockList" class="scroll"></div></div></section>
+<section id="stock" class="view"><div class="card"><h2>Skladové karty</h2><p><button class="secondary" id="printAllStock">Tlačiť celý sklad</button></p><p class="notice"><b>Jednoduché odstránenie:</b> Pri každom výrobku môžeš jedným kliknutím vyradiť všetky zostávajúce kusy zo skladu. Testovací alebo omylom pridaný výrobok bez predaja môže administrátor úplne vymazať. Predaje a účtovná história sa chránia.</p><div id="stockList" class="scroll"></div></div></section>
 <section id="movements" class="view">
  <div class="card"><h2>Pridať vlastný alebo dodávateľský tovar</h2>
  <p class="muted">Tento príjem nie je komisný tovar remeselníka. Vlastníkom bude obchodík alebo uvedený dodávateľ.</p>
@@ -65,10 +65,10 @@ async function boot(){let {data:{user:u}}=await sb.auth.getUser();if(!u)return;u
 async function refresh(){if(!sb||!user)return;let [a,p,s,m]=await Promise.all([sb.from('artisans').select('*').eq('active',true).order('name'),sb.from('products').select('*,artisans(name)').order('created_at',{ascending:false}),sb.from('sales').select('*,products(name),artisans(name)').is('voided_at',null).order('sold_on',{ascending:false}).limit(30),sb.from('stock_movements').select('*,products(name,artisan_id,artisans(name))').order('created_at',{ascending:false}).limit(200)]);if(a.error||p.error||s.error||m.error){console.error(a.error,p.error,s.error,m.error);if(m.error)console.warn('Chýba databázová migrácia stock_movements:',m.error.message);return}artisans=a.data;products=p.data;movements=m.data;let stock=products.filter(x=>x.status==='active').reduce((n,x)=>n+x.stock_qty,0),sold=s.data.reduce((n,x)=>n+x.quantity,0),rev=s.data.reduce((n,x)=>n+Number(x.total_amount),0);$('stockCount').textContent=stock+' ks';$('soldCount').textContent=sold+' ks';$('revenue').textContent=money(rev);
 const tbl=(heads,rows)=>rows.length?`<table><thead><tr>${heads.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`:'<p class="muted">Zatiaľ bez záznamov.</p>';
 $('artisanList').innerHTML=tbl(['ID remeselníka','Meno','Kontakt','Akcia'],artisans.map(x=>`<tr><td><code>${safe('REM-'+String(x.id).toUpperCase())}</code></td><td>${safe(x.name)}</td><td>${safe(x.contact||'')}</td><td><button class="danger small" onclick="removeArtisan('${x.id}')">Deaktivovať</button></td></tr>`));
-$('stockList').innerHTML=tbl(['ID výrobku','Výrobok','Remeselník','Skladom','Cena remeselníka','Predajná cena','Stav','Akcie'],products.map(x=>`<tr><td><code>${safe('VYR-'+String(x.id).toUpperCase())}</code></td><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td><td>${x.status==='pending'?'Čaká na schválenie':x.status==='active'?'Aktívny':'Zamietnutý'} ${x.status==='pending'&&['admin','accountant'].includes(profile.role)?`<button class="small" onclick="approve('${x.id}')">Schváliť</button>`:''}</td><td><button class="secondary small" onclick="editProductPrice('${x.id}')">Zmeniť cenu</button> <button class="secondary small" onclick="printStockCard('${x.id}')">Tlačiť kartu</button> ${profile.role==='admin'?`<button class="danger small" onclick="deleteProduct('${x.id}')">Vymazať</button>`:''}</td></tr>`));
+$('stockList').innerHTML=tbl(['ID výrobku','Výrobok','Remeselník','Skladom','Cena remeselníka','Predajná cena','Stav','Akcie'],products.map(x=>`<tr><td><code>${safe('VYR-'+String(x.id).toUpperCase())}</code></td><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td><td>${x.status==='pending'?'Čaká na schválenie':x.status==='active'?'Aktívny':'Zamietnutý'} ${x.status==='pending'&&['admin','accountant'].includes(profile.role)?`<button class="small" onclick="approve('${x.id}')">Schváliť</button>`:''}</td><td><button class="secondary small" onclick="editProductPrice('${x.id}')">Zmeniť cenu</button> <button class="secondary small" onclick="printStockCard('${x.id}')">Tlačiť kartu</button> ${x.status==='active'&&Number(x.stock_qty)>0?`<button class="danger small" onclick="quickWriteoff('${x.id}')">Vyradiť všetky (${x.stock_qty} ks)</button>`:''} ${profile.role==='admin'?`<button class="danger small" onclick="deleteProduct('${x.id}')">Vymazať testovaciu položku</button>`:''}</td></tr>`));
 $('latestSales').innerHTML=tbl(['Dátum','Výrobok','Kusy','Platba','Tržba'],s.data.slice(0,10).map(x=>`<tr><td>${new Date(x.sold_on).toLocaleString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${x.quantity}</td><td>${x.payment_method==='cash'?'Hotovosť':'Karta'}</td><td>${money(x.total_amount)}</td></tr>`));
 fillSelect('receiveArtisan',artisans.map(x=>[x.id,x.name]));fillSelect('settleArtisan',artisans.map(x=>[x.id,x.name]));fillSelect('saleProduct',products.filter(x=>x.status==='active'&&x.stock_qty>0).map(x=>[x.id,`${x.name} – ${x.artisans?.name||''} (${x.stock_qty} ks, ${money(x.retail_price)})`]));
-let pending=products.filter(x=>x.status==='pending');$('pendingList').innerHTML=tbl(['Výrobok','Remeselník','Počet','Cena','Doklad'],pending.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.received_qty}</td><td>${money(x.artisan_price)}</td><td><button class="secondary" onclick="printReceipt('${x.id}')">Tlačiť protokol</button></td></tr>`));
+let pending=products.filter(x=>x.status==='pending');$('pendingList').innerHTML=tbl(['Výrobok','Remeselník','Počet','Cena','Akcie'],pending.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.received_qty}</td><td>${money(x.artisan_price)}</td><td><button class="secondary small" onclick="printReceipt('${x.id}')">Tlačiť protokol</button> ${profile.role==='admin'?`<button class="danger small" onclick="deleteProduct('${x.id}')">Vymazať testovaciu položku</button>`:''}</td></tr>`));
 fillSelect('movementProduct',products.map(x=>[x.id,`${x.name} – ${x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||'Remeselník')} (sklad ${x.stock_qty} ks)`]));
 $('movementList').innerHTML=tbl(['Číslo dokladu','Dátum','Výrobok','Pohyb','Kusy','Poznámka','Doklad'],movements.map(x=>`<tr><td><code>${safe(x.doc_no)}</code></td><td>${new Date(x.created_at).toLocaleString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${safe(movementLabel(x.movement_type))}</td><td>${x.quantity}</td><td>${safe(x.note||'')}</td><td><button class="secondary small" onclick="printMovement('${x.id}')">Tlačiť</button></td></tr>`));
 }
@@ -150,19 +150,34 @@ window.editProductPrice=async id=>{
  if(error)return alert('Cenu sa nepodarilo zmeniť: '+error.message);
  await refresh();alert('Cena bola aktualizovaná. Nová predajná cena: '+money(retail));
 };
+window.quickWriteoff=async id=>{
+ if(!['admin','accountant','staff'].includes(profile?.role))return alert('Na vyradenie nemáte oprávnenie.');
+ const x=products.find(p=>p.id===id);if(!x)return;
+ const qty=Number(x.stock_qty);
+ if(x.status!=='active')return alert('Najprv musí byť výrobok schválený a aktívny.');
+ if(!Number.isInteger(qty)||qty<1)return alert('Výrobok nemá žiadne kusy na vyradenie.');
+ const reason=prompt(`Koľko kusov výrobku „${x.name}“ chceš vyradiť? Na sklade je ${qty} ks.\n\nZadaj počet kusov. Ak chceš odstrániť celý zostatok, nechaj hodnotu ${qty}.` ,String(qty));
+ if(reason===null)return;
+ const amount=Number(reason);
+ if(!Number.isInteger(amount)||amount<1||amount>qty)return alert(`Zadaj celé číslo od 1 do ${qty}.`);
+ const note=prompt('Dôvod vyradenia (napr. testovacia položka, poškodenie, vrátenie vlastníkovi):','Testovacia položka / vyradenie zo skladu');
+ if(note===null)return;
+ if(!confirm(`Potvrdiť vyradenie ${amount} ks výrobku „${x.name}“?\nVytvorí sa výdajka a história zostane zachovaná.`))return;
+ const {error}=await sb.rpc('record_stock_movement',{p_product_id:id,p_type:'writeoff',p_quantity:amount,p_note:note||'Vyradenie zo skladu',p_doc_no:'VYD-'+Date.now()});
+ if(error)return alert('Vyradenie sa nepodarilo: '+error.message);
+ await refresh();alert(`Hotovo. ${amount} ks bolo vyradených. Výdajku nájdeš v Pohyboch skladu a môžeš ju vytlačiť.`);
+};
 window.deleteProduct=async id=>{
- if(profile?.role!=='admin')return alert('Vymazávať výrobky môže iba administrátor.');
+ if(profile?.role!=='admin')return alert('Úplne vymazať položku môže iba administrátor.');
  const x=products.find(p=>p.id===id);if(!x)return;
  const {data:sales,error:se}=await sb.from('sales').select('id').eq('product_id',id).limit(1);
  if(se)return alert('Nepodarilo sa overiť históriu predajov: '+se.message);
- if(sales?.length)return alert('Tento výrobok už má zaevidovaný predaj. Nemožno ho úplne vymazať, aby zostala zachovaná účtovná história. Kontaktujte administrátora pre storno alebo vyradenie.');
- const yes=confirm(`Naozaj úplne vymazať testovací/nepredaný výrobok „${x.name}“? Zmažú sa aj jeho príjemkové záznamy. Túto akciu nemožno vrátiť.`);
+ if(sales?.length)return alert('Tento výrobok už má predaj. Úplné vymazanie nie je možné, aby zostala zachovaná účtovná história. Použi „Vyradiť všetky“ na odstránenie zostatku zo skladu.');
+ const yes=confirm(`ÚPLNE VYMAZAŤ testovaciu alebo omylom pridanú položku „${x.name}“?\n\nVymažú sa jej príjemky a skladové pohyby. Táto akcia sa nedá vrátiť. Použi ju iba na testovaciu/chybnú položku bez predaja.`);
  if(!yes)return;
- const {error:re}=await sb.from('receipts').delete().eq('product_id',id);
- if(re)return alert('Príjemkové záznamy sa nepodarilo odstrániť: '+re.message);
- const {error}=await sb.from('products').delete().eq('id',id);
- if(error)return alert('Výrobok sa nepodarilo vymazať: '+error.message);
- await refresh();alert('Výrobok a jeho príjemkové záznamy boli vymazané.');
+ const {error}=await sb.rpc('admin_delete_test_product',{p_product_id:id});
+ if(error)return alert('Položku sa nepodarilo vymazať. Skontroluj, či je spustená migrácia vymazania položiek v Supabase. Podrobnosti: '+error.message);
+ await refresh();alert('Testovacia položka bola úplne vymazaná.');
 };
 
 window.removeArtisan=async id=>{
