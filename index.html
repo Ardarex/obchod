@@ -25,7 +25,7 @@
 <div class="card" id="quickSearchCard"><h2>Rýchle vyhľadávanie</h2><label for="quickSearch">Hľadať remeselníka alebo výrobok</label><input id="quickSearch" type="search" placeholder="Zadajte meno, názov alebo existujúce číslo…" autocomplete="off"><div id="quickSearchResults" class="muted" aria-live="polite">Začnite písať a zobrazia sa zodpovedajúce výsledky.</div></div>
 <section id="home" class="view active"><div class="grid"><div class="card"><div class="muted">Skladom</div><div class="stats" id="stockCount">–</div></div><div class="card"><div class="muted">Predané kusy</div><div class="stats" id="soldCount">–</div></div><div class="card"><div class="muted">Tržby</div><div class="stats" id="revenue">–</div></div></div><div class="card"><h3>Posledné predaje</h3><div id="latestSales" class="scroll"></div></div></section>
 <section id="artisans" class="view"><div class="card"><h2>Pridať remeselníka</h2><label>Meno / názov</label><input id="artisanName"><label>Kontakt</label><input id="artisanContact"><button id="saveArtisan">Uložiť</button></div><div class="card"><h3>Remeselníci</h3><div id="artisanList" class="scroll"></div></div></section>
-<section id="receive" class="view"><div class="card"><h2>Príjem výrobkov</h2><label>Remeselník</label><select id="receiveArtisan"></select><label>Názov výrobku</label><input id="productName"><label>Počet kusov</label><input id="receiveQty" type="number" min="1" value="1"><label>Predajná cena za kus (€)</label><input id="basePrice" type="number" min=".01" step=".01"><p class="muted" id="pricePreview">Remeselník dostane 90 %, obchodík 10 %: –</p><button id="receiveBtn">Vytvoriť príjem (čaká na schválenie)</button><p id="receiveMsg"></p></div><div class="card"><h3>Čakajúce príjmy</h3><div id="pendingList" class="scroll"></div></div><div class="card"><h3>História príjemiek</h3><div id="receiptHistory" class="scroll"></div></div></section>
+<section id="receive" class="view"><div class="card"><h2>Príjem výrobkov</h2><label>Remeselník</label><select id="receiveArtisan"></select><label>Názov výrobku</label><input id="productName"><label>Počet kusov</label><input id="receiveQty" type="number" min="1" value="1"><label>Cena remeselníka bez 10 % za kus (€)</label><input id="basePrice" type="number" min=".01" step=".01"><p class="muted" id="pricePreview">Cena remeselníka + 10 % pre obchodík = predajná cena: –</p><button id="receiveBtn">Vytvoriť príjem (čaká na schválenie)</button><p id="receiveMsg"></p></div><div class="card"><h3>Čakajúce príjmy</h3><div id="pendingList" class="scroll"></div></div><div class="card"><h3>História príjemiek</h3><div id="receiptHistory" class="scroll"></div></div></section>
 <section id="stock" class="view"><div class="card"><h2>Skladové karty</h2><p><button class="secondary" id="printAllStock">Tlačiť celý sklad</button></p><p class="notice"><b>Jednoduché odstránenie:</b> Pri každom výrobku môžeš jedným kliknutím vyradiť všetky zostávajúce kusy zo skladu. Testovací alebo omylom pridaný výrobok bez predaja môže administrátor úplne vymazať. Predaje a účtovná história sa chránia.</p><div id="stockList" class="scroll"></div></div></section>
 <section id="movements" class="view">
  <div class="card"><h2>Pridať vlastný alebo dodávateľský tovar</h2>
@@ -37,7 +37,7 @@
   <div><label>Počet kusov</label><input id="ownQty" type="number" min="1" value="1"></div>
   <div><label>Predajná cena / ks (€)</label><input id="ownCost" type="number" min="0.01" step="0.01"></div>
  </div>
- <p class="muted" id="ownPricePreview">Predajná cena s 10 % odpočtom: –</p>
+ <p class="muted" id="ownPricePreview">Predajná cena tovaru: –</p>
  <button id="addOwnProduct">Pridať tovar do skladu</button><p id="ownProductMsg"></p>
  </div>
  <div class="card"><h2>Vrátenie, vyradenie a opätovné zaradenie</h2>
@@ -71,10 +71,10 @@ async function boot(){let {data:{user:u}}=await sb.auth.getUser();if(!u)return;u
 async function refresh(){if(!sb||!user)return;let [a,p,s,m,r]=await Promise.all([sb.from('artisans').select('*').eq('active',true).order('name'),sb.from('products').select('*,artisans(name)').order('created_at',{ascending:false}),sb.from('sales').select('*,products(name),artisans(name)').is('voided_at',null).order('sold_on',{ascending:false}).limit(30),sb.from('stock_movements').select('*,products(*,artisans(name))').order('created_at',{ascending:false}).limit(200),sb.from('receipts').select('*,artisans(name),products(name,sku,retail_price,artisan_price)').order('created_at',{ascending:false}).limit(500)]);if(a.error||p.error||s.error||m.error||r.error){console.error(a.error,p.error,s.error,m.error,r.error);if(m.error)console.warn('Chýba databázová migrácia stock_movements:',m.error.message);return}artisans=a.data;products=p.data;movements=m.data;receipts=r.data;let stock=products.filter(x=>x.status==='active').reduce((n,x)=>n+x.stock_qty,0),sold=s.data.reduce((n,x)=>n+x.quantity,0),rev=s.data.reduce((n,x)=>n+Number(x.total_amount),0);$('stockCount').textContent=stock+' ks';$('soldCount').textContent=sold+' ks';$('revenue').textContent=money(rev);
 const tbl=(heads,rows)=>rows.length?`<table><thead><tr>${heads.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`:'<p class="muted">Zatiaľ bez záznamov.</p>';
 $('artisanList').innerHTML=tbl(['ID remeselníka','Meno','Kontakt','Akcia'],artisans.map(x=>`<tr><td><code>${safe('REM-'+String(x.id).toUpperCase())}</code></td><td>${safe(x.name)}</td><td>${safe(x.contact||'')}</td><td><button class="danger small" onclick="removeArtisan('${x.id}')">Deaktivovať</button></td></tr>`));
-$('stockList').innerHTML=tbl(['ID výrobku','Výrobok','Remeselník','Skladom','Podiel remeselníka (90 %)','Predajná cena','Stav','Akcie'],products.map(x=>`<tr><td><code>${safe('VYR-'+String(x.id).toUpperCase())}</code></td><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td><td>${x.status==='pending'?'Čaká na schválenie':x.status==='active'?'Aktívny':'Zamietnutý'} ${x.status==='pending'&&['admin','accountant'].includes(profile.role)?`<button class="small" onclick="approve('${x.id}')">Schváliť</button>`:''}</td><td><button class="secondary small" onclick="editProductPrice('${x.id}')">Zmeniť cenu</button> <button class="secondary small" onclick="printStockCard('${x.id}')">Tlačiť kartu</button> ${x.status==='active'&&Number(x.stock_qty)>0?`<button class="danger small" onclick="quickWriteoff('${x.id}')">Vyradiť všetky (${x.stock_qty} ks)</button>`:''} ${profile.role==='admin'?`<button class="danger small" onclick="deleteProduct('${x.id}')">Vymazať testovaciu položku</button>`:''}</td></tr>`));
+$('stockList').innerHTML=tbl(['ID výrobku','Výrobok','Remeselník','Skladom','Cena remeselníka (bez 10 %)','Predajná cena','Stav','Akcie'],products.map(x=>`<tr><td><code>${safe('VYR-'+String(x.id).toUpperCase())}</code></td><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td><td>${x.status==='pending'?'Čaká na schválenie':x.status==='active'?'Aktívny':'Zamietnutý'} ${x.status==='pending'&&['admin','accountant'].includes(profile.role)?`<button class="small" onclick="approve('${x.id}')">Schváliť</button>`:''}</td><td><button class="secondary small" onclick="editProductPrice('${x.id}')">Zmeniť cenu</button> <button class="secondary small" onclick="printStockCard('${x.id}')">Tlačiť kartu</button> ${x.status==='active'&&Number(x.stock_qty)>0?`<button class="danger small" onclick="quickWriteoff('${x.id}')">Vyradiť všetky (${x.stock_qty} ks)</button>`:''} ${profile.role==='admin'?`<button class="danger small" onclick="deleteProduct('${x.id}')">Vymazať testovaciu položku</button>`:''}</td></tr>`));
 $('latestSales').innerHTML=tbl(['Dátum','Výrobok','Kusy','Platba','Tržba'],s.data.slice(0,10).map(x=>`<tr><td>${new Date(x.sold_on).toLocaleString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${x.quantity}</td><td>${x.payment_method==='cash'?'Hotovosť':'Karta'}</td><td>${money(x.total_amount)}</td></tr>`));
 fillSelect('receiveArtisan',artisans.map(x=>[x.id,x.name]));fillSelect('settleArtisan',artisans.map(x=>[x.id,x.name]));fillSelect('saleProduct',products.filter(x=>x.status==='active'&&x.stock_qty>0).map(x=>[x.id,`${x.name} – ${x.artisans?.name||''} (${x.stock_qty} ks, ${money(x.retail_price)})`]));
-let pending=products.filter(x=>x.status==='pending');$('pendingList').innerHTML=tbl(['Výrobok','Remeselník','Počet','Podiel remeselníka (90 %)','Akcie'],pending.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.received_qty}</td><td>${money(x.artisan_price)}</td><td><button class="secondary small" onclick="printReceiptByProduct('${x.id}')">Tlačiť príjemku</button> ${profile.role==='admin'?`<button class="danger small" onclick="deleteProduct('${x.id}')">Vymazať testovaciu položku</button>`:''}</td></tr>`));
+let pending=products.filter(x=>x.status==='pending');$('pendingList').innerHTML=tbl(['Výrobok','Remeselník','Počet','Cena remeselníka (bez 10 %)','Akcie'],pending.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.received_qty}</td><td>${money(x.artisan_price)}</td><td><button class="secondary small" onclick="printReceiptByProduct('${x.id}')">Tlačiť príjemku</button> ${profile.role==='admin'?`<button class="danger small" onclick="deleteProduct('${x.id}')">Vymazať testovaciu položku</button>`:''}</td></tr>`));
 $('receiptHistory').innerHTML=tbl(['Číslo príjemky','Dátum','Remeselník','Výrobok','Kusy','Doklad'],receipts.map(r=>`<tr><td>${safe(r.receipt_no)}</td><td>${new Date(r.received_on||r.created_at).toLocaleDateString('sk-SK')}</td><td>${safe(r.artisans?.name||'')}</td><td>${safe(r.products?.name||'')}</td><td>${r.received_qty}</td><td><button class="secondary small" onclick="printReceipt('${r.id}')">Tlačiť príjemku</button></td></tr>`));
 fillSelect('movementProduct',products.map(x=>[x.id,`${x.name} – ${x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||'Remeselník')} (sklad ${x.stock_qty} ks)`]));
 renderQuickSearch();
@@ -131,7 +131,7 @@ function docCss(){
  .docitems th,.docitems td{border:1px solid #39789b;padding:8px 6px;text-align:left;height:34px}
  .docitems th{text-align:center;color:#245d7a;font-size:11px}
  .docitems td.num{text-align:center}
- .signatures{display:grid;grid-template-columns:repeat(5,1fr);margin-top:45px;border:1px solid #39789b}
+ .signatures{display:grid;grid-template-columns:repeat(4,1fr);margin-top:45px;border:1px solid #39789b}
  .signatures div{border-right:1px solid #39789b;padding:8px 5px;min-height:75px;font-size:11px}
  .signatures div:last-child{border-right:0}
  .signatures span{display:block;color:#245d7a;font-weight:bold;margin-bottom:20px}
@@ -153,7 +153,7 @@ function printReceipt(id){
  const date=new Date(r.received_on||r.created_at).toLocaleDateString('sk-SK');
  const artisan=r.artisans?.name||artisans.find(a=>a.id===r.artisan_id)?.name||'';
  const artisanUnit=Number(r.artisan_price||0);
- const unit=Math.round((artisanUnit/.9)*100)/100;
+ const unit=Math.round((artisanUnit*1.10)*100)/100;
  const total=unit*Number(r.received_qty||0);
  const body=`<div class="doc">
  <div class="dochead"><div class="org">Organizácia (pečiatka)<br><b>REMESelný OBCHODÍK</b><br>Rožňava</div><div class="doctitle">P R Í J E M K A</div><div class="docno"><b>Číslo</b>${safe(r.receipt_no)}<br><b>Má dať / Dátum</b>${date}</div></div>
@@ -169,15 +169,15 @@ function printReceipt(id){
  <table class="docitems"><thead><tr><th>Por. čís.</th><th>Kód podľa platnej JK</th><th>Názov</th><th>MJ</th><th>Množstvo podľa dokladu</th><th>Skutočne prevzaté</th><th>Cena za MJ</th><th>Spolu</th></tr></thead>
  <tbody><tr><td class="num">1.</td><td class="num">${safe(p.sku||'')}</td><td>${safe(p.name||r.products?.name||'')}</td><td class="num">KS</td><td class="num">${Number(r.received_qty)}</td><td class="num">${Number(r.received_qty)}</td><td class="num">${money(unit)}</td><td class="num">${money(total)}</td></tr>
  ${Array.from({length:5},()=>'<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}</tbody></table>
- <div class="smallfields"><div><b>Poznámka o zápise do skladovej karty</b><br>${safe(r.note||'')}</div><div><b>Predajná cena / ks</b><br>${money(unit)}</div><div><b>Podiel remeselníka (90 %)</b><br>${money(artisanUnit)}</div></div>
- <div class="signatures"><div><span>Vyhotovil</span><em>Dátum, podpis</em></div><div><span>Prevzal</span><em>Dátum, podpis</em></div><div><span>Schválil</span><em>Dátum, podpis</em></div><div><span>Kontroloval</span><em>Dátum, podpis</em></div><div><span>Dodávateľ</span><em>Dátum, podpis</em></div></div>
+ <div class="smallfields"><div><b>Poznámka o zápise do skladovej karty</b><br>${safe(r.note||'')}</div><div><b>Predajná cena / ks</b><br>${money(unit)}</div><div><b>Cena remeselníka (bez 10 %)</b><br>${money(artisanUnit)}</div></div>
+ <div class="signatures"><div><span>Vyhotovil<br>Silvia Makarová</span><em>Dátum, podpis</em></div><div><span>Prevzal<br>Silvia Makarová</span><em>Dátum, podpis</em></div><div><span>Schválil<br>Anežka Kleinová</span><em>Dátum, podpis</em></div><div><span>Kontroloval<br>Martina Hudóvá</span><em>Dátum, podpis</em></div></div>
  <p class="foot">Doklad je automaticky prepojený s príjemkou v databáze a skladovou kartou výrobku. Vytlačené: ${new Date().toLocaleString('sk-SK')}</p></div>`;
  printPage('Príjemka '+r.receipt_no,body);
 }
 function printStockCard(id){
  const x=products.find(p=>p.id===id);if(!x)return;
  printPage('Skladová karta',`<p><b>Kód výrobku:</b> ${safe(x.sku||x.id)}</p><p><b>Výrobok:</b> ${safe(x.name)}</p>
- <p><b>Remeselník:</b> ${safe(x.artisans?.name||'')}</p><table><tr><th>Prijaté</th><th>Predané</th><th>Aktuálny stav</th><th>Podiel remeselníka (90 %)</th><th>Predajná cena</th></tr>
+ <p><b>Remeselník:</b> ${safe(x.artisans?.name||'')}</p><table><tr><th>Prijaté</th><th>Predané</th><th>Aktuálny stav</th><th>Cena remeselníka (bez 10 %)</th><th>Predajná cena</th></tr>
  <tr><td>${x.received_qty}</td><td>${x.sold_qty}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td></tr></table>
  <p><b>Stav:</b> ${x.status==='active'?'Aktívny':x.status==='pending'?'Čaká na schválenie':'Zamietnutý'}</p>`);
 }
@@ -186,7 +186,7 @@ async function printAllStock(){
  w.document.write('<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>Pripravujem tlač…</title></head><body>Pripravujem tlač…</body></html>');
  const {data,error}=await sb.from('products').select('*,artisans(name)').order('name');
  if(error){w.close();return alert(error.message)}
- printPage('Prehľad skladových kariet',`<p>Dátum tlače: ${new Date().toLocaleString('sk-SK')}</p><table><tr><th>Výrobok</th><th>Vlastník / dodávateľ</th><th>Prijaté</th><th>Predané</th><th>Skladom</th><th>Podiel remeselníka (90 %)</th><th>Predajná cena</th><th>Stav</th></tr>
+ printPage('Prehľad skladových kariet',`<p>Dátum tlače: ${new Date().toLocaleString('sk-SK')}</p><table><tr><th>Výrobok</th><th>Vlastník / dodávateľ</th><th>Prijaté</th><th>Predané</th><th>Skladom</th><th>Cena remeselníka (bez 10 %)</th><th>Predajná cena</th><th>Stav</th></tr>
  ${data.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.owner_type==='shop'?'Obchodík':x.owner_type==='supplier'?(x.supplier_name||'Dodávateľ'):(x.artisans?.name||''))}</td><td>${x.received_qty}</td><td>${x.sold_qty}</td><td>${x.stock_qty}</td><td>${money(x.artisan_price)}</td><td>${money(x.retail_price)}</td><td>${safe(x.status)}</td></tr>`).join('')}</table>`,w);
 }
 async function printDailyClose(){
@@ -196,10 +196,17 @@ async function printDailyClose(){
  const {data,error}=await sb.from('sales').select('*,products(name),artisans(name)').is('voided_at',null).gte('sold_on',from.toISOString()).lt('sold_on',to.toISOString()).order('sold_on');
  if(error){w.close();return alert(error.message)}
  const cash=data.filter(x=>x.payment_method==='cash'),card=data.filter(x=>x.payment_method==='card');
- const sum=a=>a.reduce((n,x)=>n+Number(x.total_amount),0);
- printPage('Denná uzávierka predaja',`<p>Dátum: ${from.toLocaleDateString('sk-SK')}</p><table><tr><th>Čas</th><th>Výrobok</th><th>Remeselník</th><th>Kusy</th><th>Platba</th><th>Tržba</th></tr>
- ${data.map(x=>`<tr><td>${new Date(x.sold_on).toLocaleTimeString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${safe(x.artisans?.name||'')}</td><td>${x.quantity}</td><td>${x.payment_method==='cash'?'Hotovosť':'Karta'}</td><td>${money(x.total_amount)}</td></tr>`).join('')}</table>
- <h3>Hotovosť: ${money(sum(cash))}</h3><h3>Platobné karty: ${money(sum(card))}</h3><h2>Tržby spolu: ${money(sum(data))}</h2>`,w);
+ const sum=(a,key)=>a.reduce((n,x)=>n+Number(x[key]||0),0);
+ const base=x=>x.artisan_id?Number(x.artisan_unit_price||0)*Number(x.quantity||0):Number(x.total_amount||0);
+ const baseSum=a=>a.reduce((n,x)=>n+base(x),0);
+ const retailSum=a=>sum(a,'total_amount');
+ const shopSum=a=>a.reduce((n,x)=>n+Math.max(0,Number(x.total_amount||0)-base(x)),0);
+ printPage('Denná uzávierka predaja',`<p>Dátum: ${from.toLocaleDateString('sk-SK')}</p>
+ <table><tr><th>Čas</th><th>Výrobok</th><th>Remeselník</th><th>Kusy</th><th>Platba</th><th>Cena bez 10 %</th><th>Cena s 10 %</th><th>Rozdiel obchodíka</th></tr>
+ ${data.map(x=>`<tr><td>${new Date(x.sold_on).toLocaleTimeString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${safe(x.artisans?.name||'')}</td><td>${x.quantity}</td><td>${x.payment_method==='cash'?'Hotovosť':'Karta'}</td><td>${money(base(x))}</td><td>${money(x.total_amount)}</td><td>${money(Math.max(0,Number(x.total_amount||0)-base(x)))}</td></tr>`).join('')}</table>
+ <h3>Hotovosť – cena bez 10 %: ${money(baseSum(cash))}</h3><h3>Hotovosť – cena s 10 %: ${money(retailSum(cash))}</h3>
+ <h3>Platobné karty – cena bez 10 %: ${money(baseSum(card))}</h3><h3>Platobné karty – cena s 10 %: ${money(retailSum(card))}</h3>
+ <hr><h3>Spolu bez 10 %: ${money(baseSum(data))}</h3><h3>Spolu s 10 % (skutočná tržba): ${money(retailSum(data))}</h3><h2>Rozdiel – 10 % obchodíka: ${money(shopSum(data))}</h2>`,w);
 }
 function movementLabel(t){return ({return_to_owner:'Vrátenie vlastníkovi/dodávateľovi',writeoff:'Vyradenie / odpis',reinstatement:'Opätovné zaradenie',correction_in:'Inventúrna oprava – príjem',correction_out:'Inventúrna oprava – výdaj',initial_stock:'Počiatočný príjem'})[t]||t}
 function printMovement(id){
@@ -223,7 +230,7 @@ function printMovement(id){
  <table class="docitems"><thead><tr><th>Por. čís.</th><th>Kód podľa platnej JK</th><th>Názov</th><th>MJ</th><th>Žiadané</th><th>Vydané / prevzaté</th><th>Cena za MJ</th><th>Spolu</th></tr></thead>
  <tbody><tr><td class="num">1.</td><td class="num">${safe(p.sku||'')}</td><td>${safe(p.name||'')}</td><td class="num">KS</td><td class="num">${Number(x.quantity)}</td><td class="num">${Number(x.quantity)}</td><td class="num">${money(unit)}</td><td class="num">${money(total)}</td></tr>
  ${Array.from({length:6},()=>'<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}</tbody></table>
- <div class="signatures"><div><span>Poznámka o zápise do skladovej karty</span><em>Dátum, podpis</em></div><div><span>Vyhotovil</span><em>Dátum, podpis</em></div><div><span>${isOut?'Vydal':'Prevzal'}</span><em>Dátum, podpis</em></div><div><span>Schválil</span><em>Dátum, podpis</em></div><div><span>Kontroloval</span><em>Dátum, podpis</em></div></div>
+ <div class="signatures"><div><span>Vyhotovil<br>Silvia Makarová</span><em>Dátum, podpis</em></div><div><span>Prevzal<br>Silvia Makarová</span><em>Dátum, podpis</em></div><div><span>Schválil<br>Anežka Kleinová</span><em>Dátum, podpis</em></div><div><span>Kontroloval<br>Martina Hudóvá</span><em>Dátum, podpis</em></div></div>
  <p class="foot">Doklad je prepojený so skladovým pohybom č. ${safe(x.doc_no)} a kartou výrobku. Vytlačené: ${new Date().toLocaleString('sk-SK')}</p></div>`;
  printPage(title+' '+x.doc_no,body);
 }
@@ -239,12 +246,12 @@ function fillSelect(id,arr){$(id).innerHTML='<option value="">Vyberte…</option
 window.editProductPrice=async id=>{
  if(!['admin','accountant'].includes(profile?.role))return alert('Na zmenu ceny nemáte oprávnenie.');
  const x=products.find(p=>p.id===id);if(!x)return;
- const entered=prompt(`Nová PREDAJNÁ cena za kus (€) pre „${x.name}“. Remeselník dostane 90 %, obchodík 10 %.`,Number(x.retail_price).toFixed(2));
+ const entered=prompt(`Nová CENA REMESELNÍKA bez 10 % za kus (€) pre „${x.name}“. Systém pripočíta 10 % pre obchodík.`,Number(x.artisan_price).toFixed(2));
  if(entered===null)return;
- const retail=Number(String(entered).replace(',','.'));
- if(!Number.isFinite(retail)||retail<=0)return alert('Zadajte platnú cenu vyššiu ako 0.');
- const artisan=Math.round(retail*.9*100)/100;
- if(!confirm(`Uložiť predajnú cenu ${money(retail)}? Remeselník: ${money(artisan)} (90 %), obchodík: ${money(retail-artisan)} (10 %). Staré predaje zostanú nezmenené.`))return;
+ const artisan=Number(String(entered).replace(',','.'));
+ if(!Number.isFinite(artisan)||artisan<=0)return alert('Zadajte platnú cenu vyššiu ako 0.');
+ const retail=Math.round(artisan*1.10*100)/100;
+ if(!confirm(`Uložiť cenu remeselníka ${money(artisan)} a predajnú cenu ${money(retail)} (navýšenie 10 % pre obchodík)? Staré predaje zostanú nezmenené.`))return;
  const {error}=await sb.from('products').update({retail_price:retail,artisan_price:artisan}).eq('id',id);
  if(error)return alert('Cenu sa nepodarilo zmeniť: '+error.message);
  await refresh();alert('Cena bola aktualizovaná.');
@@ -291,10 +298,10 @@ Historické príjmy, predaje a vyúčtovania zostanú zachované. Remeselník sa
  await refresh();alert('Remeselník bol odstránený z aktívneho zoznamu. História zostala zachovaná.');
 };
 $('saveArtisan').onclick=async()=>{if(!['admin','accountant'].includes(profile.role))return;let name=$('artisanName').value.trim();if(!name)return;let {error}=await sb.from('artisans').insert({name,contact:$('artisanContact').value,created_by:user.id});if(error)return alert(error.message);$('artisanName').value='';$('artisanContact').value='';refresh()};
-$('basePrice').oninput=()=>{const retail=Number($('basePrice').value)||0;$('pricePreview').textContent=`Remeselník dostane ${money(Math.round(retail*.9*100)/100)} (90 %) · obchodík ${money(Math.round(retail*.1*100)/100)} (10 %)`};
-$('receiveBtn').onclick=async()=>{let artisan_id=$('receiveArtisan').value,name=$('productName').value.trim(),qty=Number($('receiveQty').value),price=Number($('basePrice').value);if(!artisan_id||!name||!Number.isInteger(qty)||qty<1||price<=0)return msg('receiveMsg','Vyplňte všetky údaje správne.');let {data,error}=await sb.from('products').insert({artisan_id,name,received_qty:qty,artisan_price:Math.round(price*.9*100)/100,retail_price:price,status:'pending',created_by:user.id}).select().single();if(error)return msg('receiveMsg',error.message);let {error:e2}=await sb.from('receipts').insert({receipt_no:'PP-'+Date.now(),artisan_id,product_id:data.id,received_qty:qty,artisan_price:Math.round(price*.9*100)/100,created_by:user.id});if(e2)return msg('receiveMsg','Produkt bol vytvorený, ale protokol sa nepodarilo uložiť: '+e2.message);msg('receiveMsg','Príjem uložený. Čaká na kontrolu účtovníčkou.',true);$('productName').value='';refresh()};
+$('basePrice').oninput=()=>{const artisan=Number($('basePrice').value)||0;const retail=Math.round(artisan*1.10*100)/100;$('pricePreview').textContent=`Remeselník: ${money(artisan)} · obchodík (10 %): ${money(retail-artisan)} · predajná cena: ${money(retail)}`};
+$('receiveBtn').onclick=async()=>{let artisan_id=$('receiveArtisan').value,name=$('productName').value.trim(),qty=Number($('receiveQty').value),price=Number($('basePrice').value);if(!artisan_id||!name||!Number.isInteger(qty)||qty<1||price<=0)return msg('receiveMsg','Vyplňte všetky údaje správne.');let {data,error}=await sb.from('products').insert({artisan_id,name,received_qty:qty,artisan_price:price,retail_price:Math.round(price*1.10*100)/100,status:'pending',created_by:user.id}).select().single();if(error)return msg('receiveMsg',error.message);let {error:e2}=await sb.from('receipts').insert({receipt_no:'PP-'+Date.now(),artisan_id,product_id:data.id,received_qty:qty,artisan_price:price,created_by:user.id});if(e2)return msg('receiveMsg','Produkt bol vytvorený, ale protokol sa nepodarilo uložiť: '+e2.message);msg('receiveMsg','Príjem uložený. Čaká na kontrolu účtovníčkou.',true);$('productName').value='';refresh()};
 window.approve=async id=>{if(!['admin','accountant'].includes(profile.role))return;let {error}=await sb.from('products').update({status:'active'}).eq('id',id);if(error)alert(error.message);else{await sb.from('receipts').update({approved_by:user.id,approved_at:new Date().toISOString()}).eq('product_id',id);refresh()}};
-function previewSale(){let p=products.find(x=>x.id===$('saleProduct').value),q=Number($('saleQty').value)||0;const total=p?Math.round(Number(p.retail_price)*q*100)/100:0;const artisan=p?.artisan_id?Math.round(total*.9*100)/100:0;$('salePreview').textContent=p?`Spolu ${money(total)} · ${p.artisan_id?'remeselník 90 %: '+money(artisan)+' · obchodík 10 %: '+money(total-artisan):'celá tržba obchodíku'} · sklad ${p.stock_qty} ks`:''}
+function previewSale(){let p=products.find(x=>x.id===$('saleProduct').value),q=Number($('saleQty').value)||0;const total=p?Math.round(Number(p.retail_price)*q*100)/100:0;const artisan=p?.artisan_id?Math.round(Number(p.artisan_price)*q*100)/100:0;$('salePreview').textContent=p?`Cena bez 10 %: ${money(artisan)} · cena s 10 %: ${money(total)} · podiel obchodíka: ${money(total-artisan)} · sklad ${p.stock_qty} ks`:''}
 $('saleProduct').onchange=previewSale;$('saleQty').oninput=previewSale;
 $('sellBtn').onclick=async()=>{let id=$('saleProduct').value,q=Number($('saleQty').value);if(!id||!Number.isInteger(q)||q<1)return msg('saleMsg','Vyberte výrobok a počet kusov.');let {error}=await sb.rpc('record_sale',{p_product_id:id,p_quantity:q,p_payment:$('payment').value,p_sale_no:'P-'+Date.now()});if(error)return msg('saleMsg',error.message);msg('saleMsg','Predaj uložený a sklad odpísaný.',true);await refresh();previewSale()};
 $('printAllStock').onclick=printAllStock;$('printDailyClose').onclick=printDailyClose;
