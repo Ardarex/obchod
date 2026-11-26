@@ -139,7 +139,28 @@ function docCss(){
  .foot{font-size:10px;color:#555;margin-top:8px}
  .smallfields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:6px}
  .smallfields div{border:1px solid #39789b;padding:6px;min-height:30px}
- @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+ /* Dve rovnake kópie dokladu na jednom liste A4 */
+ .two-up{height:283mm;display:flex;flex-direction:column;gap:2mm;box-sizing:border-box}
+ .two-up .doc{height:auto;min-height:0;flex:1 1 0;overflow:hidden;box-sizing:border-box;padding:0 1mm;break-inside:avoid;page-break-inside:avoid}
+ .two-up .dochead{grid-template-columns:1fr 1.3fr 145px;gap:5px;padding-bottom:4px;margin-bottom:4px}
+ .two-up .org{font-size:9px}
+ .two-up .doctitle{font-size:20px;letter-spacing:1px}
+ .two-up .docno{padding:4px;font-size:10px;min-height:32px}
+ .two-up .fields{margin:4px 0}
+ .two-up .field{padding:3px 5px;min-height:22px;font-size:10px}
+ .two-up .field small{font-size:9px}
+ .two-up table.docitems{margin-top:5px;font-size:9px}
+ .two-up .docitems th,.two-up .docitems td{padding:2px 3px;height:15px;font-size:9px}
+ .two-up .signatures{margin-top:10px}
+ .two-up .signatures div{padding:4px 3px;min-height:42px;font-size:9px}
+ .two-up .signatures span{margin-bottom:6px}
+ .two-up .signatures em{margin-top:7px;padding-top:2px;font-size:8px}
+ .two-up .smallfields{gap:3px;margin-top:4px;font-size:9px}
+ .two-up .smallfields div{padding:3px;min-height:20px}
+ .two-up .foot{font-size:8px;margin-top:4px}
+ .two-up .copy-separator{border-top:1px dashed #777;height:0;align-self:center}
+ @page{size:A4 portrait;margin:7mm}
+ @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.two-up{break-inside:avoid;page-break-inside:avoid}}
  </style>`;
 }
 function printReceiptByProduct(productId){
@@ -172,7 +193,7 @@ function printReceipt(id){
  <div class="smallfields"><div><b>Poznámka o zápise do skladovej karty</b><br>${safe(r.note||'')}</div><div><b>Predajná cena / ks</b><br>${money(unit)}</div><div><b>Cena remeselníka (bez 10 %)</b><br>${money(artisanUnit)}</div></div>
  <div class="signatures"><div><span>Vyhotovil<br>Silvia Makarová</span><em>Dátum, podpis</em></div><div><span>Prevzal<br>Silvia Makarová</span><em>Dátum, podpis</em></div><div><span>Schválil<br>Anežka Kleinová</span><em>Dátum, podpis</em></div><div><span>Kontroloval<br>Martina Hudóvá</span><em>Dátum, podpis</em></div></div>
  <p class="foot">Doklad je automaticky prepojený s príjemkou v databáze a skladovou kartou výrobku. Vytlačené: ${new Date().toLocaleString('sk-SK')}</p></div>`;
- printPage('Príjemka '+r.receipt_no,body);
+ printPage('Príjemka '+r.receipt_no,`<div class=\"two-up\">${body}<div class=\"copy-separator\"></div>${body}</div>`);
 }
 function printStockCard(id){
  const x=products.find(p=>p.id===id);if(!x)return;
@@ -232,7 +253,7 @@ function printMovement(id){
  ${Array.from({length:6},()=>'<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}</tbody></table>
  <div class="signatures"><div><span>Vyhotovil<br>Silvia Makarová</span><em>Dátum, podpis</em></div><div><span>Prevzal<br>Silvia Makarová</span><em>Dátum, podpis</em></div><div><span>Schválil<br>Anežka Kleinová</span><em>Dátum, podpis</em></div><div><span>Kontroloval<br>Martina Hudóvá</span><em>Dátum, podpis</em></div></div>
  <p class="foot">Doklad je prepojený so skladovým pohybom č. ${safe(x.doc_no)} a kartou výrobku. Vytlačené: ${new Date().toLocaleString('sk-SK')}</p></div>`;
- printPage(title+' '+x.doc_no,body);
+ printPage(title+' '+x.doc_no,`<div class=\"two-up\">${body}<div class=\"copy-separator\"></div>${body}</div>`);
 }
 async function printAllMovements(){const w=window.open('','_blank');if(!w)return alert('Povoľte vyskakovacie okná.');w.document.write('<!doctype html><html><body>Pripravujem tlač…</body></html>');const {data,error}=await sb.from('stock_movements').select('*,products(name)').order('created_at',{ascending:false});if(error){w.close();return alert(error.message)}printPage('História pohybov skladu',`<table><tr><th>Doklad</th><th>Dátum</th><th>Výrobok</th><th>Pohyb</th><th>Kusy</th><th>Poznámka</th></tr>${data.map(x=>`<tr><td>${safe(x.doc_no)}</td><td>${new Date(x.created_at).toLocaleString('sk-SK')}</td><td>${safe(x.products?.name||'')}</td><td>${safe(movementLabel(x.movement_type))}</td><td>${x.quantity}</td><td>${safe(x.note||'')}</td></tr>`).join('')}</table>`,w)}
 $('ownType').onchange=()=>{$('supplierName').disabled=$('ownType').value!=='supplier'};$('ownType').onchange();
